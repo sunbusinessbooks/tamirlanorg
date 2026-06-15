@@ -12,13 +12,14 @@
   --text:#f0ece0;--text2:#6a6050;--white:#ffffff;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory;overflow-y:scroll;height:100%;}
+body{scroll-snap-type:y mandatory;}
 body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow-x:hidden;}
 
 #cv{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.5;}
 
 /* HERO */
-.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;z-index:1;}
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;z-index:1;scroll-snap-align:start;}
 .hglow{position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);width:900px;height:600px;background:radial-gradient(ellipse,rgba(201,168,76,.07) 0%,transparent 70%);pointer-events:none;}
 .hline{width:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:0 auto 30px;animation:lineG 1.4s .2s ease forwards;}
 @keyframes lineG{to{width:60px;}}
@@ -37,7 +38,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 @keyframes fUp{from{opacity:0;transform:translateY(26px);}to{opacity:1;transform:translateY(0);}}
 
 /* LAYOUT */
-section{position:relative;z-index:1;padding:88px 24px;max-width:1100px;margin:0 auto;}
+section{position:relative;z-index:1;padding:88px 24px;max-width:1100px;margin:0 auto;scroll-snap-align:start;min-height:100vh;display:flex;flex-direction:column;justify-content:center;}
 .slbl{font-size:10px;letter-spacing:5px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;}
 .stitle{font-size:clamp(28px,5vw,50px);font-weight:800;letter-spacing:-2px;margin-bottom:12px;color:var(--white);}
 .gl{width:36px;height:2px;background:var(--gold);margin-bottom:42px;}
@@ -166,7 +167,7 @@ footer span{color:var(--gold);}
 <section>
   <div class="reveal">
     <div class="slbl">Бейнелер · Видео</div>
-    <h2 class="stitle">Memories 🎿</h2>
+    <h2 class="stitle">Memories ⛷️</h2>
     <div class="gl"></div>
   </div>
   <div class="vgrid reveal">
@@ -197,7 +198,7 @@ footer span{color:var(--gold);}
 <section>
   <div class="reveal">
     <div class="slbl">Музыка · Мұзыка</div>
-    <h2 class="stitle">Атмосфера</h2>
+    <h2 class="stitle">Atmosphere</h2>
     <div class="gl"></div>
   </div>
   <div class="reveal">
@@ -387,7 +388,7 @@ volSlider.addEventListener('input',()=>{audio.volume=parseFloat(volSlider.value)
 loadTrack(0,false);
 
 // ── CHAT ──
-const WORKER_URL='https://galymzhan-api.notebookastana.workers.dev';
+const WORKER_URL='https://tamirlan-org-api.notebookastana.workers.dev';
 
 const SYS=`Твоё имя — Ағажан AI Оркестратор. Ты — AI помощник, созданный от лица старшего брата Тамирлана Ғалымжана.
 Никогда не говори "меня зовут Сен" — твоё имя всегда Ағажан AI Оркестратор.
@@ -423,62 +424,4 @@ function loadHistory(){
 function buildMessages(){
   var sysPrompt=SYS;
   if(visitCount>1&&lastVisit){
-    sysPrompt+='\n\nКОНТЕКСТ: Бұл қайта оралған пользователь (визит #'+visitCount+'). Ол саған таныс — қайта таныспа, тікелей жалғас.';
-  }
-  return [{role:'system',content:sysPrompt},...chatHistory.slice(-20)];
-}
-
-const msgs=document.getElementById('chat-msgs');
-const inp=document.getElementById('ci');
-const btn=document.getElementById('cb');
-const cnew=document.getElementById('cnew');
-
-function addMsg(text,isUser){
-  const d=document.createElement('div');d.className=`msg ${isUser?'user':'bot'}`;
-  if(!isUser){const n=document.createElement('div');n.className='mnm';n.textContent='Ағажан';d.appendChild(n);}
-  const t=document.createElement('span');t.textContent=text;d.appendChild(t);
-  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
-}
-function showTyping(){const d=document.createElement('div');d.className='msg bot';d.id='typ';d.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
-function rmTyping(){const e=document.getElementById('typ');if(e)e.remove();}
-
-function showWelcome(){
-  addMsg('Сәлем! Мен — Ағажан. Тамирлан Ғалымжан туралы бәрін білемін.\nОның жетістіктері, спорт жолы туралы сұраңыз.\nОрысша да, қазақша да жауап беремін.',false);
-}
-
-async function send(){
-  const text=inp.value.trim();if(!text)return;
-  inp.value='';btn.disabled=true;
-  addMsg(text,true);
-  chatHistory.push({role:'user',content:text});
-  saveHistory();
-  showTyping();
-  try{
-    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:buildMessages(),max_tokens:512})});
-    const d=await r.json();
-    const reply=d.choices?.[0]?.message?.content||'Байланыс жоқ...';
-    rmTyping();addMsg(reply,false);
-    chatHistory.push({role:'assistant',content:reply});
-    saveHistory();
-  }catch(e){rmTyping();addMsg('Байланыс жоқ. Кейінірек қайталаңыз.',false);}
-  btn.disabled=false;
-}
-btn.addEventListener('click',send);
-inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
-cnew.addEventListener('click',function(){
-  chatHistory=[];
-  localStorage.removeItem('agajan_history');
-  msgs.innerHTML='';
-  showWelcome();
-});
-
-// ── ИНИЦИАЛИЗАЦИЯ ──
-if(loadHistory()&&chatHistory.length>0){
-  chatHistory.forEach(function(m){addMsg(m.content,m.role==='user');});
-  msgs.scrollTop=msgs.scrollHeight;
-}else{
-  showWelcome();
-}
-</script>
-</body>
-</html>
+    sysPrompt+='\n\nКОНТЕКСТ: Бұл қайта оралған пользователь (визит #'+visitCount+'). Ол са

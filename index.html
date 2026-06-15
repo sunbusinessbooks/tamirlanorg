@@ -115,8 +115,7 @@ section{position:relative;z-index:1;padding:88px 24px;max-width:1100px;margin:0 
 footer{position:relative;z-index:1;text-align:center;padding:42px 24px;color:var(--text2);font-size:11px;letter-spacing:2px;border-top:1px solid rgba(201,168,76,.07);}
 footer span{color:var(--gold);}
 
-.reveal{opacity:0;transform:translateY(34px);transition:opacity .8s ease,transform .8s ease;}
-.reveal.visible{opacity:1;transform:translateY(0);}
+.reveal{opacity:1;transform:translateY(0);}
 </style>
 </head>
 <body>
@@ -388,7 +387,7 @@ volSlider.addEventListener('input',()=>{audio.volume=parseFloat(volSlider.value)
 loadTrack(0,false);
 
 // ── CHAT ──
-const WORKER_URL='https://tamirlan-org-api.notebookastana.workers.dev';
+const WORKER_URL='https://galymzhan-api.notebookastana.workers.dev';
 
 const SYS=`Твоё имя — Ағажан AI Оркестратор. Ты — AI помощник, созданный от лица старшего брата Тамирлана Ғалымжана.
 Никогда не говори "меня зовут Сен" — твоё имя всегда Ағажан AI Оркестратор.
@@ -426,4 +425,60 @@ function buildMessages(){
   if(visitCount>1&&lastVisit){
     sysPrompt+='\n\nКОНТЕКСТ: Бұл қайта оралған пользователь (визит #'+visitCount+'). Ол саған таныс — қайта таныспа, тікелей жалғас.';
   }
-  return [{role:'system',c
+  return [{role:'system',content:sysPrompt},...chatHistory.slice(-20)];
+}
+
+const msgs=document.getElementById('chat-msgs');
+const inp=document.getElementById('ci');
+const btn=document.getElementById('cb');
+const cnew=document.getElementById('cnew');
+
+function addMsg(text,isUser){
+  const d=document.createElement('div');d.className=`msg ${isUser?'user':'bot'}`;
+  if(!isUser){const n=document.createElement('div');n.className='mnm';n.textContent='Ағажан';d.appendChild(n);}
+  const t=document.createElement('span');t.textContent=text;d.appendChild(t);
+  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+function showTyping(){const d=document.createElement('div');d.className='msg bot';d.id='typ';d.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function rmTyping(){const e=document.getElementById('typ');if(e)e.remove();}
+
+function showWelcome(){
+  addMsg('Сәлем! Мен — Ағажан. Тамирлан Ғалымжан туралы бәрін білемін.\nОның жетістіктері, спорт жолы туралы сұраңыз.\nОрысша да, қазақша да жауап беремін.',false);
+}
+
+async function send(){
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';btn.disabled=true;
+  addMsg(text,true);
+  chatHistory.push({role:'user',content:text});
+  saveHistory();
+  showTyping();
+  try{
+    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:buildMessages(),max_tokens:512})});
+    const d=await r.json();
+    const reply=d.choices?.[0]?.message?.content||'Байланыс жоқ...';
+    rmTyping();addMsg(reply,false);
+    chatHistory.push({role:'assistant',content:reply});
+    saveHistory();
+  }catch(e){rmTyping();addMsg('Байланыс жоқ. Кейінірек қайталаңыз.',false);}
+  btn.disabled=false;
+}
+btn.addEventListener('click',send);
+inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+cnew.addEventListener('click',function(){
+  chatHistory=[];
+  localStorage.removeItem('agajan_history');
+  msgs.innerHTML='';
+  showWelcome();
+});
+
+// ── ИНИЦИАЛИЗАЦИЯ ──
+if(loadHistory()&&chatHistory.length>0){
+  chatHistory.forEach(function(m){addMsg(m.content,m.role==='user');});
+  msgs.scrollTop=msgs.scrollHeight;
+}else{
+  showWelcome();
+}
+</script>
+</body>
+</html>

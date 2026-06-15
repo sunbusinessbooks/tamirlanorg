@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TAMIRLAN GALYMZHAN — Жеңімпаз</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23E85D04'/%3E%3Cstop offset='100%25' style='stop-color:%23DC2F02'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='20' fill='url(%23bg)'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='white'%3E%E2%81%9C%3C/text%3E%3C/svg%3E">
 <style>
 :root{
   --gold:#c9a84c;--gold2:#e8c96a;
@@ -93,6 +94,8 @@ section{position:relative;z-index:1;padding:88px 24px;max-width:1100px;margin:0 
 .cav{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a4c00);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--dark);flex-shrink:0;}
 .cname{font-weight:700;font-size:15px;}
 .cstat{font-size:10px;color:var(--gold);letter-spacing:1px;}
+.cnew{margin-left:auto;background:none;border:1px solid rgba(201,168,76,.2);color:var(--text2);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;transition:all .3s;letter-spacing:1px;}
+.cnew:hover{border-color:var(--gold);color:var(--gold);}
 #chat-msgs{height:320px;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;scrollbar-color:rgba(201,168,76,.15) transparent;}
 .msg{max-width:82%;padding:11px 14px;border-radius:12px;font-size:14px;line-height:1.65;}
 .msg.bot{background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.13);align-self:flex-start;border-radius:4px 12px 12px 12px;}
@@ -253,15 +256,9 @@ footer span{color:var(--gold);}
           <div class="cname">Ағажан</div>
           <div class="cstat">● Online</div>
         </div>
+        <button class="cnew" id="cnew">Жаңа чат</button>
       </div>
-      <div id="chat-msgs">
-        <div class="msg bot">
-          <div class="mnm">Ағажан</div>
-          Сәлем! Мен — Ағажан. Тамирлан Ғалымжан туралы бәрін білемін.
-          Оның жетістіктері, спорт жолы туралы сұраңыз.
-          Орысша да, қазақша да жауап беремін.
-        </div>
-      </div>
+      <div id="chat-msgs"></div>
       <div class="cinp">
         <input type="text" id="ci" placeholder="Сұрақ қойыңыз..." autocomplete="off">
         <button id="cb">→</button>
@@ -391,7 +388,7 @@ volSlider.addEventListener('input',()=>{audio.volume=parseFloat(volSlider.value)
 loadTrack(0,false);
 
 // ── CHAT ──
-const WORKER_URL='https://galymzhan-api.notebookastana.workers.dev';
+const WORKER_URL='https://tamirlan-org-api.notebookastana.workers.dev';
 
 const SYS=`Твоё имя — Ағажан AI Оркестратор. Ты — AI помощник, созданный от лица старшего брата Тамирлана Ғалымжана.
 Никогда не говори "меня зовут Сен" — твоё имя всегда Ағажан AI Оркестратор.
@@ -402,34 +399,31 @@ World MMA Nomad призері, 2 КМС (джиу-джитсу мен кикб�
 Жылы, мақтаныш, ақыл — осылай жауап бер.
 Орысша сұрақ — орысша жауап. Қазақша — қазақша.`;
 
-const hist=[{role:'system',content:SYS}];
-const msgs=document.getElementById('chat-msgs');
-const inp=document.getElementById('ci');
-const btn=document.getElementById('cb');
-
-function addMsg(text,isUser){
-  const d=document.createElement('div');d.className=`msg ${isUser?'user':'bot'}`;
-  if(!isUser){const n=document.createElement('div');n.className='mnm';n.textContent='Ағажан';d.appendChild(n);}
-  const t=document.createElement('span');t.textContent=text;d.appendChild(t);
-  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+// ── КУКИ ──
+function setCookie(name,value,days){
+  var exp=new Date(Date.now()+(days||365)*864e5).toUTCString();
+  document.cookie=name+'='+encodeURIComponent(value)+';expires='+exp+';path=/;SameSite=Lax';
 }
-function showTyping(){const d=document.createElement('div');d.className='msg bot';d.id='typ';d.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
-function rmTyping(){const e=document.getElementById('typ');if(e)e.remove();}
-
-async function send(){
-  const text=inp.value.trim();if(!text)return;
-  inp.value='';btn.disabled=true;
-  addMsg(text,true);hist.push({role:'user',content:text});showTyping();
-  try{
-    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:hist,max_tokens:512})});
-    const d=await r.json();
-    const reply=d.choices?.[0]?.message?.content||'Байланыс жоқ...';
-    rmTyping();addMsg(reply,false);hist.push({role:'assistant',content:reply});
-  }catch(e){rmTyping();addMsg('Байланыс жоқ. Кейінірек қайталаңыз.',false);}
-  btn.disabled=false;
+function getCookie(name){
+  var m=document.cookie.match(new RegExp('(^| )'+name+'=([^;]+)'));
+  return m?decodeURIComponent(m[2]):null;
 }
-btn.addEventListener('click',send);
-inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
-</script>
-</body>
-</html>
+var visitCount=parseInt(getCookie('visitCount')||'0')+1;
+var lastVisit=getCookie('lastVisit');
+setCookie('visitCount',visitCount);
+setCookie('lastVisit',new Date().toISOString());
+
+// ── ПАМЯТЬ (localStorage) ──
+var chatHistory=[];
+function saveHistory(){try{localStorage.setItem('agajan_history',JSON.stringify(chatHistory));}catch(e){}}
+function loadHistory(){
+  try{var s=localStorage.getItem('agajan_history');if(s){chatHistory=JSON.parse(s);return chatHistory.length>0;}}catch(e){}
+  return false;
+}
+
+function buildMessages(){
+  var sysPrompt=SYS;
+  if(visitCount>1&&lastVisit){
+    sysPrompt+='\n\nКОНТЕКСТ: Бұл қайта оралған пользователь (визит #'+visitCount+'). Ол саған таныс — қайта таныспа, тікелей жалғас.';
+  }
+  return [{role:'system',c

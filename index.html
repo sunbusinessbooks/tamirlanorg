@@ -429,4 +429,56 @@ function buildMessages(){
 }
 
 const msgs=document.getElementById('chat-msgs');
-const inp=
+const inp=document.getElementById('ci');
+const btn=document.getElementById('cb');
+const cnew=document.getElementById('cnew');
+
+function addMsg(text,isUser){
+  const d=document.createElement('div');d.className=`msg ${isUser?'user':'bot'}`;
+  if(!isUser){const n=document.createElement('div');n.className='mnm';n.textContent='Ағажан';d.appendChild(n);}
+  const t=document.createElement('span');t.textContent=text;d.appendChild(t);
+  msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+function showTyping(){const d=document.createElement('div');d.className='msg bot';d.id='typ';d.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function rmTyping(){const e=document.getElementById('typ');if(e)e.remove();}
+
+function showWelcome(){
+  addMsg('Сәлем! Мен — Ағажан. Тамирлан Ғалымжан туралы бәрін білемін.\nОның жетістіктері, спорт жолы туралы сұраңыз.\nОрысша да, қазақша да жауап беремін.',false);
+}
+
+async function send(){
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';btn.disabled=true;
+  addMsg(text,true);
+  chatHistory.push({role:'user',content:text});
+  saveHistory();
+  showTyping();
+  try{
+    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:buildMessages(),max_tokens:512})});
+    const d=await r.json();
+    const reply=d.choices?.[0]?.message?.content||'Байланыс жоқ...';
+    rmTyping();addMsg(reply,false);
+    chatHistory.push({role:'assistant',content:reply});
+    saveHistory();
+  }catch(e){rmTyping();addMsg('Байланыс жоқ. Кейінірек қайталаңыз.',false);}
+  btn.disabled=false;
+}
+btn.addEventListener('click',send);
+inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+cnew.addEventListener('click',function(){
+  chatHistory=[];
+  localStorage.removeItem('agajan_history');
+  msgs.innerHTML='';
+  showWelcome();
+});
+
+// ── ИНИЦИАЛИЗАЦИЯ ──
+if(loadHistory()&&chatHistory.length>0){
+  chatHistory.forEach(function(m){addMsg(m.content,m.role==='user');});
+  msgs.scrollTop=msgs.scrollHeight;
+}else{
+  showWelcome();
+}
+</script>
+</body>
+</html>

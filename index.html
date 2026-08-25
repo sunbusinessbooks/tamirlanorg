@@ -455,7 +455,7 @@ async function send(){
   saveHistory();
   showTyping();
   try{
-    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:buildMessages(),max_tokens:512})});
+    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:gpt-oss-120b',messages:buildMessages(),max_tokens:512})});
     const d=await r.json();
     const reply=d.choices?.[0]?.message?.content||'Байланыс жоқ...';
     rmTyping();addMsg(reply,false);
